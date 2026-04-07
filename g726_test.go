@@ -2,6 +2,7 @@ package g726
 
 import (
 	"bytes"
+	"encoding/binary"
 	"testing"
 )
 
@@ -347,6 +348,80 @@ func TestRegressionFiveBitEncodedSize(t *testing.T) {
 	}
 	if len(adpcm) != 5 {
 		t.Fatalf("Encode(5, 8 samples) produced %d bytes, want 5", len(adpcm))
+	}
+}
+
+func TestPackCodewordsLE(t *testing.T) {
+	tests := []struct {
+		name  string
+		bits  uint
+		codes []uint32
+		want  []byte
+	}{
+		{name: "2-bit", bits: 2, codes: []uint32{0, 1, 2, 3}, want: []byte{0xE4}},
+		{name: "3-bit", bits: 3, codes: []uint32{0, 1, 2, 3, 4, 5, 6, 7}, want: []byte{0x88, 0xC6, 0xFA}},
+		{name: "4-bit", bits: 4, codes: []uint32{1, 2}, want: []byte{0x21}},
+		{name: "5-bit", bits: 5, codes: []uint32{0, 1, 2, 3, 4, 5, 6, 7}, want: []byte{0x20, 0x88, 0x41, 0x8A, 0x39}},
+	}
+
+	for _, tt := range tests {
+		dst := make([]byte, len(tt.want))
+		n := packCodewordsLE(dst, tt.codes, tt.bits)
+		if n != len(tt.want) {
+			t.Fatalf("%s packed %d bytes, want %d", tt.name, n, len(tt.want))
+		}
+		if !bytes.Equal(dst, tt.want) {
+			t.Fatalf("%s packed bytes = %x, want %x", tt.name, dst, tt.want)
+		}
+	}
+}
+
+func TestUnpackCodewordsLE(t *testing.T) {
+	tests := []struct {
+		name string
+		bits uint
+		src  []byte
+		want []uint32
+	}{
+		{name: "2-bit", bits: 2, src: []byte{0xE4}, want: []uint32{0, 1, 2, 3}},
+		{name: "3-bit", bits: 3, src: []byte{0x88, 0xC6, 0xFA}, want: []uint32{0, 1, 2, 3, 4, 5, 6, 7}},
+		{name: "4-bit", bits: 4, src: []byte{0x21}, want: []uint32{1, 2}},
+		{name: "5-bit", bits: 5, src: []byte{0x20, 0x88, 0x41, 0x8A, 0x39}, want: []uint32{0, 1, 2, 3, 4, 5, 6, 7}},
+	}
+
+	for _, tt := range tests {
+		got := make([]uint32, len(tt.want))
+		unpackCodewordsLE(tt.src, got, tt.bits)
+		for i := range tt.want {
+			if got[i] != tt.want[i] {
+				t.Fatalf("%s unpacked codes[%d] = %d, want %d", tt.name, i, got[i], tt.want[i])
+			}
+		}
+	}
+}
+
+func TestDecodeFiveBitReferenceFixture(t *testing.T) {
+	adpcm := []byte{0xFF, 0xBD, 0xE7, 0x21, 0x84, 0xE2, 0x3D, 0xD6, 0x29, 0xC5}
+	want := []int16{0, 188, 228, 280, 4, -244, -428, -684, -4, 824, 1792, 2832, 44, -3028, -4228, -2856}
+	const tolerance = 32
+
+	gotPCM, err := DecodeBytes(5, adpcm)
+	if err != nil {
+		t.Fatalf("DecodeBytes(5) returned error: %v", err)
+	}
+	if len(gotPCM) != len(want)*2 {
+		t.Fatalf("DecodeBytes(5) returned %d bytes, want %d", len(gotPCM), len(want)*2)
+	}
+
+	for i, wantSample := range want {
+		gotSample := int16(binary.LittleEndian.Uint16(gotPCM[i*2:]))
+		diff := int(gotSample) - int(wantSample)
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff > tolerance {
+			t.Fatalf("decoded sample[%d] = %d, want %d within %d", i, gotSample, wantSample, tolerance)
+		}
 	}
 }
 

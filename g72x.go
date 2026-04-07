@@ -253,16 +253,12 @@ func (state_ptr *codecState) update(code_size, y, wi, fi, dq, sr, dqsez int) {
 
 		/* UPB : update predictor zeros b[6] */
 		for cnt = 0; cnt < 6; cnt++ {
-			if code_size == 5 { /* 5 bits/sample mode */
-				state_ptr.b[cnt] -= state_ptr.b[cnt] >> 9
-			} else { /* 3 or 4 bits/sample modes */
-				state_ptr.b[cnt] -= state_ptr.b[cnt] >> 8
-				if (dq & 0x7FFF) != 0 { /* XOR */
-					if (dq ^ int(state_ptr.dq[cnt])) >= 0 {
-						state_ptr.b[cnt] += 128
-					} else {
-						state_ptr.b[cnt] -= 128
-					}
+			state_ptr.b[cnt] -= state_ptr.b[cnt] >> 8
+			if (dq & 0x7FFF) != 0 { /* XOR */
+				if (dq ^ int(state_ptr.dq[cnt])) >= 0 {
+					state_ptr.b[cnt] += 128
+				} else {
+					state_ptr.b[cnt] -= 128
 				}
 			}
 		}

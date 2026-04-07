@@ -194,57 +194,60 @@ func (state_ptr *codecState) encodeToBytes(pcm []byte, pkt []byte) (int, error) 
 		return 0, nil
 	}
 
-	var n int
+	var (
+		n    int
+		bits uint
+	)
 	switch state_ptr.bitsPerSample {
 	case BitsPerSample(2):
+		bits = 2
 		for i := 0; i < length; i += 8 {
-			a := state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))
-			b := state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))
-			c := state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i+4:]))))
-			d := state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i+6:]))))
-			pkt[n] = byte((a << 6) | (b << 4) | (c << 2) | d)
-			n++
+			samples := [4]uint32{
+				uint32(state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))),
+				uint32(state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))),
+				uint32(state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i+4:]))))),
+				uint32(state_ptr.encodeBits2(int(int16(binary.LittleEndian.Uint16(pcm[i+6:]))))),
+			}
+			n += packCodewordsLE(pkt[n:], samples[:], bits)
 		}
 	case BitsPerSample(3):
+		bits = 3
 		for i := 0; i < length; i += 16 {
-			s0 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))
-			s1 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))
-			s2 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+4:]))))
-			s3 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+6:]))))
-			s4 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+8:]))))
-			s5 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+10:]))))
-			s6 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+12:]))))
-			s7 := state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+14:]))))
-
-			pkt[n] = byte(s0<<5) | byte(s1<<2) | byte(s2>>1)
-			pkt[n+1] = byte((s2&1)<<7) | byte(s3<<4) | byte(s4<<1) | byte(s5>>2)
-			pkt[n+2] = byte((s5&3)<<6) | byte(s6<<3) | byte(s7)
-			n += 3
+			samples := [8]uint32{
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))),
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))),
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+4:]))))),
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+6:]))))),
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+8:]))))),
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+10:]))))),
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+12:]))))),
+				uint32(state_ptr.encodeBits3(int(int16(binary.LittleEndian.Uint16(pcm[i+14:]))))),
+			}
+			n += packCodewordsLE(pkt[n:], samples[:], bits)
 		}
 	case BitsPerSample(4):
+		bits = 4
 		for i := 0; i < length; i += 4 {
-			a := state_ptr.encodeBits4(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))
-			b := state_ptr.encodeBits4(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))
-			pkt[n] = byte((a << 4) | b)
-			n++
+			samples := [2]uint32{
+				uint32(state_ptr.encodeBits4(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))),
+				uint32(state_ptr.encodeBits4(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))),
+			}
+			n += packCodewordsLE(pkt[n:], samples[:], bits)
 		}
 	case BitsPerSample(5):
+		bits = 5
 		for i := 0; i < length; i += 16 {
-			s0 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))
-			s1 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))
-			s2 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+4:]))))
-			s3 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+6:]))))
-			s4 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+8:]))))
-			s5 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+10:]))))
-			s6 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+12:]))))
-			s7 := state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+14:]))))
-
-			pkt[n] = byte((s0 << 3) | (s1 >> 2))
-			pkt[n+1] = byte(((s1 & 0x03) << 6) | (s2 << 1) | (s3 >> 4))
-			pkt[n+2] = byte(((s3 & 0x0F) << 4) | (s4 >> 1))
-			pkt[n+3] = byte(((s4 & 0x01) << 7) | (s5 << 2) | (s6 >> 3))
-			pkt[n+4] = byte(((s6 & 0x07) << 5) | s7)
-			n += 5
+			samples := [8]uint32{
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i:]))))),
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+2:]))))),
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+4:]))))),
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+6:]))))),
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+8:]))))),
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+10:]))))),
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+12:]))))),
+				uint32(state_ptr.encodeBits5(int(int16(binary.LittleEndian.Uint16(pcm[i+14:]))))),
+			}
+			n += packCodewordsLE(pkt[n:], samples[:], bits)
 		}
 	default:
 		return -1, fmt.Errorf("invalid bits per sample: %d", state_ptr.bitsPerSample)
@@ -263,77 +266,55 @@ func (state_ptr *codecState) decodeToBytes(bitstream []byte, pcm []byte) (int, e
 		return 0, nil
 	}
 
+	var bits uint
 	switch state_ptr.bitsPerSample {
 	case BitsPerSample(2):
+		bits = 2
 		for i := 0; i < inputLen; i++ {
-			a := (bitstream[i] & byte(192)) >> 6
-			b := (bitstream[i] & byte(48)) >> 4
-			c := (bitstream[i] & byte(12)) >> 2
-			dv := bitstream[i] & byte(3)
-
-			binary.LittleEndian.PutUint16(pcm[i*8:], uint16(state_ptr.decodeBits2(int(a))))
-			binary.LittleEndian.PutUint16(pcm[i*8+2:], uint16(state_ptr.decodeBits2(int(b))))
-			binary.LittleEndian.PutUint16(pcm[i*8+4:], uint16(state_ptr.decodeBits2(int(c))))
-			binary.LittleEndian.PutUint16(pcm[i*8+6:], uint16(state_ptr.decodeBits2(int(dv))))
+			var samples [4]uint32
+			unpackCodewordsLE(bitstream[i:i+1], samples[:], bits)
+			binary.LittleEndian.PutUint16(pcm[i*8:], uint16(state_ptr.decodeBits2(int(samples[0]))))
+			binary.LittleEndian.PutUint16(pcm[i*8+2:], uint16(state_ptr.decodeBits2(int(samples[1]))))
+			binary.LittleEndian.PutUint16(pcm[i*8+4:], uint16(state_ptr.decodeBits2(int(samples[2]))))
+			binary.LittleEndian.PutUint16(pcm[i*8+6:], uint16(state_ptr.decodeBits2(int(samples[3]))))
 		}
 	case BitsPerSample(3):
+		bits = 3
 		for i := 0; i < inputLen; i += 3 {
-			b0 := bitstream[i]
-			b1 := bitstream[i+1]
-			b2 := bitstream[i+2]
-
-			s0 := (b0 & 0xE0) >> 5
-			s1 := (b0 & 0x1C) >> 2
-			s2 := ((b0 & 0x03) << 1) | ((b1 & 0x80) >> 7)
-			s3 := (b1 & 0x70) >> 4
-			s4 := (b1 & 0x0E) >> 1
-			s5 := ((b1 & 0x01) << 2) | ((b2 & 0xC0) >> 6)
-			s6 := (b2 & 0x38) >> 3
-			s7 := b2 & 0x07
-
+			var samples [8]uint32
+			unpackCodewordsLE(bitstream[i:i+3], samples[:], bits)
 			n := i / 3 * 16
-			binary.LittleEndian.PutUint16(pcm[n:], uint16(state_ptr.decodeBits3(int(s0))))
-			binary.LittleEndian.PutUint16(pcm[n+2:], uint16(state_ptr.decodeBits3(int(s1))))
-			binary.LittleEndian.PutUint16(pcm[n+4:], uint16(state_ptr.decodeBits3(int(s2))))
-			binary.LittleEndian.PutUint16(pcm[n+6:], uint16(state_ptr.decodeBits3(int(s3))))
-			binary.LittleEndian.PutUint16(pcm[n+8:], uint16(state_ptr.decodeBits3(int(s4))))
-			binary.LittleEndian.PutUint16(pcm[n+10:], uint16(state_ptr.decodeBits3(int(s5))))
-			binary.LittleEndian.PutUint16(pcm[n+12:], uint16(state_ptr.decodeBits3(int(s6))))
-			binary.LittleEndian.PutUint16(pcm[n+14:], uint16(state_ptr.decodeBits3(int(s7))))
+			binary.LittleEndian.PutUint16(pcm[n:], uint16(state_ptr.decodeBits3(int(samples[0]))))
+			binary.LittleEndian.PutUint16(pcm[n+2:], uint16(state_ptr.decodeBits3(int(samples[1]))))
+			binary.LittleEndian.PutUint16(pcm[n+4:], uint16(state_ptr.decodeBits3(int(samples[2]))))
+			binary.LittleEndian.PutUint16(pcm[n+6:], uint16(state_ptr.decodeBits3(int(samples[3]))))
+			binary.LittleEndian.PutUint16(pcm[n+8:], uint16(state_ptr.decodeBits3(int(samples[4]))))
+			binary.LittleEndian.PutUint16(pcm[n+10:], uint16(state_ptr.decodeBits3(int(samples[5]))))
+			binary.LittleEndian.PutUint16(pcm[n+12:], uint16(state_ptr.decodeBits3(int(samples[6]))))
+			binary.LittleEndian.PutUint16(pcm[n+14:], uint16(state_ptr.decodeBits3(int(samples[7]))))
 		}
 	case BitsPerSample(4):
+		bits = 4
 		for i := 0; i < inputLen; i++ {
-			a := (bitstream[i] & byte(240)) >> 4
-			b := bitstream[i] & byte(15)
-			binary.LittleEndian.PutUint16(pcm[i*4:], uint16(state_ptr.decodeBits4(int(a))))
-			binary.LittleEndian.PutUint16(pcm[i*4+2:], uint16(state_ptr.decodeBits4(int(b))))
+			var samples [2]uint32
+			unpackCodewordsLE(bitstream[i:i+1], samples[:], bits)
+			binary.LittleEndian.PutUint16(pcm[i*4:], uint16(state_ptr.decodeBits4(int(samples[0]))))
+			binary.LittleEndian.PutUint16(pcm[i*4+2:], uint16(state_ptr.decodeBits4(int(samples[1]))))
 		}
 	case BitsPerSample(5):
+		bits = 5
 		for i := 0; i < inputLen; i += 5 {
-			b0 := bitstream[i]
-			b1 := bitstream[i+1]
-			b2 := bitstream[i+2]
-			b3 := bitstream[i+3]
-			b4 := bitstream[i+4]
-
-			s0 := (b0 & 0xF8) >> 3
-			s1 := ((b0 & 0x07) << 2) | ((b1 & 0xC0) >> 6)
-			s2 := (b1 & 0x3E) >> 1
-			s3 := ((b1 & 0x01) << 4) | ((b2 & 0xF0) >> 4)
-			s4 := ((b2 & 0x0F) << 1) | ((b3 & 0x80) >> 7)
-			s5 := (b3 & 0x7C) >> 2
-			s6 := ((b3 & 0x03) << 3) | ((b4 & 0xE0) >> 5)
-			s7 := b4 & 0x1F
-
+			var samples [8]uint32
+			unpackCodewordsLE(bitstream[i:i+5], samples[:], bits)
 			n := i / 5 * 16
-			binary.LittleEndian.PutUint16(pcm[n:], uint16(state_ptr.decodeBits5(int(s0))))
-			binary.LittleEndian.PutUint16(pcm[n+2:], uint16(state_ptr.decodeBits5(int(s1))))
-			binary.LittleEndian.PutUint16(pcm[n+4:], uint16(state_ptr.decodeBits5(int(s2))))
-			binary.LittleEndian.PutUint16(pcm[n+6:], uint16(state_ptr.decodeBits5(int(s3))))
-			binary.LittleEndian.PutUint16(pcm[n+8:], uint16(state_ptr.decodeBits5(int(s4))))
-			binary.LittleEndian.PutUint16(pcm[n+10:], uint16(state_ptr.decodeBits5(int(s5))))
-			binary.LittleEndian.PutUint16(pcm[n+12:], uint16(state_ptr.decodeBits5(int(s6))))
-			binary.LittleEndian.PutUint16(pcm[n+14:], uint16(state_ptr.decodeBits5(int(s7))))
+			binary.LittleEndian.PutUint16(pcm[n:], uint16(state_ptr.decodeBits5(int(samples[0]))))
+			binary.LittleEndian.PutUint16(pcm[n+2:], uint16(state_ptr.decodeBits5(int(samples[1]))))
+			binary.LittleEndian.PutUint16(pcm[n+4:], uint16(state_ptr.decodeBits5(int(samples[2]))))
+			binary.LittleEndian.PutUint16(pcm[n+6:], uint16(state_ptr.decodeBits5(int(samples[3]))))
+			binary.LittleEndian.PutUint16(pcm[n+8:], uint16(state_ptr.decodeBits5(int(samples[4]))))
+			binary.LittleEndian.PutUint16(pcm[n+10:], uint16(state_ptr.decodeBits5(int(samples[5]))))
+			binary.LittleEndian.PutUint16(pcm[n+12:], uint16(state_ptr.decodeBits5(int(samples[6]))))
+			binary.LittleEndian.PutUint16(pcm[n+14:], uint16(state_ptr.decodeBits5(int(samples[7]))))
 		}
 	default:
 		return -1, fmt.Errorf("invalid bits per sample: %d", state_ptr.bitsPerSample)
@@ -373,4 +354,42 @@ func bytesToInt16s(pcm []byte) []int16 {
 		out[i] = int16(binary.LittleEndian.Uint16(pcm[i*2:]))
 	}
 	return out
+}
+
+func packCodewordsLE(dst []byte, codes []uint32, bits uint) int {
+	var bitOffset uint
+	mask := uint32((1 << bits) - 1)
+
+	for _, code := range codes {
+		value := code & mask
+		byteIndex := int(bitOffset / 8)
+		shift := bitOffset % 8
+
+		dst[byteIndex] |= byte(value << shift)
+		if shift+bits > 8 {
+			dst[byteIndex+1] |= byte(value >> (8 - shift))
+		}
+
+		bitOffset += bits
+	}
+
+	return int(bitOffset / 8)
+}
+
+func unpackCodewordsLE(src []byte, codes []uint32, bits uint) {
+	var bitOffset uint
+	mask := uint32((1 << bits) - 1)
+
+	for i := range codes {
+		byteIndex := int(bitOffset / 8)
+		shift := bitOffset % 8
+
+		value := uint32(src[byteIndex]) >> shift
+		if shift+bits > 8 {
+			value |= uint32(src[byteIndex+1]) << (8 - shift)
+		}
+
+		codes[i] = value & mask
+		bitOffset += bits
+	}
 }
