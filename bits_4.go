@@ -10,10 +10,10 @@ type bits4Params struct {
 var params4 bits4Params
 
 func init() {
-	params4.quantizerThresholds = [7]int{-125, 79, 177, 245, 299, 348, 399}
+	params4.quantizerThresholds = [7]int{-124, 80, 178, 246, 300, 349, 400}
 	/* Maps 4-bit sample codes to reconstructed scale factor normalized log values. */
-	params4.reconstructTable = [16]int{-32768, 4, 135, 213, 273, 323, 373, 425,
-		425, 373, 323, 273, 213, 135, 4, -32768}
+	params4.reconstructTable = [16]int{-2048, 4, 135, 213, 273, 323, 373, 425,
+		425, 373, 323, 273, 213, 135, 4, -2048}
 
 	/* Maps 4-bit sample codes to scale-factor multiplier log values. */
 	params4.scaleTable = [16]int{-12, 18, 41, 64, 112, 198, 355, 1122,
@@ -96,7 +96,9 @@ func (state_ptr *codecState) decodeBits4(i int) int {
 
 	state_ptr.update(4, y, params4.scaleTable[i]<<5, params4.stationarityTable[i], dq, sr, dqsez)
 
-	lino = clipPCMWord(sr << 2) /* sr was of 14-bit dynamic range */
+	lino = sr << 2 /* this seems to overflow a short*/
+	lino = ifElse[int](lino > 32767, 32767, lino)
+	lino = ifElse[int](lino < -32768, -32768, lino)
 
 	return lino //(sr << 2);	/* sr was 14-bit dynamic range */
 }

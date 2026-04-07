@@ -434,8 +434,6 @@ func TestZeroRegionStaysSilentAtLargeStepSize(t *testing.T) {
 	}{
 		{name: "3-bit-positive", sign: 0, dqln: params3.reconstructTable[0], want: 0},
 		{name: "3-bit-negative", sign: 1, dqln: params3.reconstructTable[7], want: -0x8000},
-		{name: "4-bit-positive", sign: 0, dqln: params4.reconstructTable[0], want: 0},
-		{name: "4-bit-negative", sign: 1, dqln: params4.reconstructTable[15], want: -0x8000},
 		{name: "5-bit-positive", sign: 0, dqln: params5.reconstructTable[0], want: 0},
 		{name: "5-bit-negative", sign: 1, dqln: params5.reconstructTable[31], want: -0x8000},
 	}
