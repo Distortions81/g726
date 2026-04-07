@@ -133,7 +133,7 @@ func limitAbruptTransitions(bitsPerSample BitsPerSample, samples []int16) {
 			delta := curr - prev
 
 			limit := false
-			if signInt16(samples[i]) != signInt16(samples[i-1]) && abs(delta) > maxJump {
+			if sign(curr) != sign(prev) && abs(delta) > maxJump {
 				limit = true
 			}
 			if i >= 2 {
