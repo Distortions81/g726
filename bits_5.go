@@ -11,12 +11,12 @@ var params5 bits5Params
 
 func init() {
 	params5.quantizerThresholds = [15]int{-122, -16, 68, 139, 198, 250, 298, 339,
-		378, 413, 445, 475, 502, 528, 553}
+		377, 412, 444, 474, 501, 527, 552}
 	/* Maps 5-bit sample codes to reconstructed scale factor normalized log values. */
-	params5.reconstructTable = [32]int{-2048, -66, 28, 104, 169, 224, 274, 318,
+	params5.reconstructTable = [32]int{-32768, -66, 28, 104, 169, 224, 274, 318,
 		358, 395, 429, 459, 488, 514, 539, 566,
 		566, 539, 514, 488, 459, 429, 395, 358,
-		318, 274, 224, 169, 104, 28, -66, -2048}
+		318, 274, 224, 169, 104, 28, -66, -32768}
 
 	/* Maps 5-bit sample codes to scale-factor multiplier log values. */
 	params5.scaleTable = [32]int{448, 448, 768, 1248, 1280, 1312, 1856, 3200,
@@ -66,7 +66,7 @@ func (state_ptr *codecState) encodeBits5(sl int) int {
 
 	dq = reconstruct(i&0x10, int(params5.reconstructTable[i]), y) /* quantized diff */
 
-	sr = ifElse[int](dq < 0, se-(dq&0x7FFF), se+dq) /* reconstructed signal */
+	sr = int(int16(se + signedReconstructDelta(dq, 0x7FFF))) /* reconstructed signal */
 
 	dqsez = sr + sez - se /* dqsez = pole prediction diff. */
 
@@ -96,11 +96,11 @@ func (state_ptr *codecState) decodeBits5(i int) int {
 	y = state_ptr.step_size()                                     /* adaptive quantizer step size */
 	dq = reconstruct(i&0x10, int(params5.reconstructTable[i]), y) /* estimation diff. */
 
-	sr = ifElse[int](dq < 0, se-(dq&0x7FFF), se+dq) /* reconst. signal */
+	sr = int(int16(se + signedReconstructDelta(dq, 0x7FFF))) /* reconst. signal */
 
 	dqsez = sr - se + sez /* pole prediction diff. */
 
 	state_ptr.update(5, y, int(params5.scaleTable[i]), int(params5.stationarityTable[i]), dq, sr, dqsez)
 
-	return sr << 2 /* sr was of 14-bit dynamic range */
+	return clipPCMWord(sr << 2) /* sr was of 14-bit dynamic range */
 }

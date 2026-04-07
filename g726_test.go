@@ -425,6 +425,28 @@ func TestDecodeFiveBitReferenceFixture(t *testing.T) {
 	}
 }
 
+func TestZeroRegionStaysSilentAtLargeStepSize(t *testing.T) {
+	tests := []struct {
+		name string
+		sign int
+		dqln int
+		want int
+	}{
+		{name: "3-bit-positive", sign: 0, dqln: params3.reconstructTable[0], want: 0},
+		{name: "3-bit-negative", sign: 1, dqln: params3.reconstructTable[7], want: -0x8000},
+		{name: "4-bit-positive", sign: 0, dqln: params4.reconstructTable[0], want: 0},
+		{name: "4-bit-negative", sign: 1, dqln: params4.reconstructTable[15], want: -0x8000},
+		{name: "5-bit-positive", sign: 0, dqln: params5.reconstructTable[0], want: 0},
+		{name: "5-bit-negative", sign: 1, dqln: params5.reconstructTable[31], want: -0x8000},
+	}
+
+	for _, tt := range tests {
+		if got := reconstruct(tt.sign, tt.dqln, 8192); got != tt.want {
+			t.Fatalf("%s reconstruct(%d, %d, 8192) = %d, want %d", tt.name, tt.sign, tt.dqln, got, tt.want)
+		}
+	}
+}
+
 func fixtureSamples(bits BitsPerSample, count int) []int16 {
 	samples := make([]int16, count)
 	for i := range samples {

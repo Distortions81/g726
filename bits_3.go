@@ -10,10 +10,10 @@ type bits3Params struct {
 var params3 bits3Params
 
 func init() {
-	params3.quantizerThresholds = [3]int{8, 218, 331}
+	params3.quantizerThresholds = [3]int{7, 217, 330}
 
 	/* Maps 3-bit sample codes to reconstructed scale factor normalized log values. */
-	params3.reconstructTable = [8]int{-2048, 135, 273, 373, 373, 273, 135, -2048}
+	params3.reconstructTable = [8]int{-32768, 135, 273, 373, 373, 273, 135, -32768}
 
 	/* Maps 3-bit sample codes to scale-factor multiplier log values. */
 	params3.scaleTable = [8]int{-128, 960, 4384, 18624, 18624, 4384, 960, -128}
@@ -90,5 +90,5 @@ func (state_ptr *codecState) decodeBits3(i int) int {
 
 	state_ptr.update(3, y, int(params3.scaleTable[i]), int(params3.stationarityTable[i]), dq, sr, dqsez)
 
-	return sr << 2 /* sr was of 14-bit dynamic range */
+	return clipPCMWord(sr << 2) /* sr was of 14-bit dynamic range */
 }

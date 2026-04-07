@@ -10,7 +10,7 @@ type bits2Params struct {
 var params2 bits2Params
 
 func init() {
-	params2.quantizerThresholds = [1]int{261}
+	params2.quantizerThresholds = [1]int{260}
 
 	/*
 	 * Maps 2-bit sample codes to reconstructed scale factor normalized log
@@ -65,7 +65,7 @@ func (state_ptr *codecState) encodeBits2(sl int) int {
 	 * (1, 2, or 3), we must create the fourth one on our own
 	 */
 	if i == 3 { /* i code for the zero region */
-		if (d & 0x8000) == 0 { /* If d > 0, i=3 isn't right... */
+		if d >= 0 { /* If d > 0, i=3 isn't right... */
 			i = 0
 		}
 	}
@@ -108,5 +108,5 @@ func (state_ptr *codecState) decodeBits2(i int) int {
 
 	state_ptr.update(2, y, int(params2.scaleTable[i]), int(params2.stationarityTable[i]), dq, sr, dqsez)
 
-	return sr << 2 /* sr was of 14-bit dynamic range */
+	return clipPCMWord(sr << 2) /* sr was of 14-bit dynamic range */
 }

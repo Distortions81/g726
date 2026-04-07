@@ -375,6 +375,23 @@ func ifElse[T any](b bool, t, f T) T {
 	}
 }
 
+func signedReconstructDelta(dq, mask int) int {
+	if dq < 0 {
+		return -(dq & mask)
+	}
+	return dq
+}
+
+func clipPCMWord(sample int) int {
+	if sample > 65535 {
+		return 65535
+	}
+	if sample < -65535 {
+		return -65535
+	}
+	return sample
+}
+
 type Compare interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
